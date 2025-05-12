@@ -4,78 +4,63 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import secrets
-from .crud import get_user, get_user_by_email, create_user, authenticate_user
-from .models import UserCreate, UserRead
-from .main import get_db
 
-# configuração do JWT
-SECRET_KEY = secrets.token_urlsafe(32) 
-ALGORITHM = "HS256"
+from crud import (
+    get_user_by_email, get_user_by_cpf,
+    create_user, authenticate_user
+)
+from models import UserCreate, UserRead
+from main import get_db
+
+
+SECRET_KEY = secrets.token_urlsafe(32)
+ALGORITHM  = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["auth"],
-)
-
+router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-@router.post("/register", response_model=UserRead)
-def signup(user: UserCreate, db: Session = Depends(get_db)):
-    if get_user(db, user.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username já cadastrado"
-        )
-    if get_user_by_email(db, user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email já cadastrado"
-        )
-    return create_user(db, user)
+@router.post("/register", response_model=UserRead, status_code=201)
+def signup(user_in: UserCreate, db: Session = Depends(get_db)):
+    if get_user_by_email(db, user_in.email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já cadastrado")
+    if get_user_by_cpf(db, user_in.cpf):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CPF já cadastrado")
+    return create_user(db, user_in)
 
 @router.post("/login")
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    user = authenticate_user(db, form_data.username, form_data.password)
+def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = authenticate_user(db, form.username, form.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário ou senha incorretos",
+            detail="Credenciais inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode = {"sub": user.username, "exp": expire}
-    access_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    token = jwt.encode({"sub": user.email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return {"access_token": token, "token_type": "bearer"}
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db:    Session = Depends(get_db)
 ):
-    credentials_exception = HTTPException(
+    cred_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Não foi possível validar as credenciais",
+        detail="Token inválido",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
+        email: str | None = payload.get("sub")
+        if email is None:
+            raise cred_exc
     except JWTError:
-        raise credentials_exception
+        raise cred_exc
 
-    user = get_user(db, username)
+    user = get_user_by_email(db, email)
     if user is None:
-        raise credentials_exception
+        raise cred_exc
     return user
 
 @router.get("/me", response_model=UserRead)
