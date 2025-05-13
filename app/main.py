@@ -15,7 +15,7 @@ if not DATABASE_URL:
     raise RuntimeError("Defina a env var DATABASE_URL")
 
 
-engine = create_engine(DATABASE_URL, connect_args={"ssl": {"ca": "../ca.pem"}})
+engine = create_engine(DATABASE_URL, connect_args={"ssl": {"ca": "ca.pem"}})
 
 SessionLocal = sessionmaker(
     autocommit=False,
