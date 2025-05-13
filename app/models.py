@@ -1,66 +1,86 @@
-# models.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from datetime import datetime
+from sqlalchemy import (
+    Boolean, Column, DateTime, ForeignKey, Integer, String
+)
 from sqlalchemy.orm import declarative_base, relationship
-
 
 Base = declarative_base()
 
-class PersonalInfo(Base):
-    __tablename__ = 'personal_info'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-class TrainingAvailability(Base):
-    __tablename__ = 'training_availability'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-class Condition(Base):
-    __tablename__ = 'condition'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
+# ---------- senha separada ----------
 class Password(Base):
-    __tablename__ = 'password'
+    __tablename__ = "password"
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    password256  = Column(String(256), nullable=False)
+
+    user = relationship("User", back_populates="password_obj", uselist=False)
+
+# ---------- tabelas auxiliares ----------
+class Condition(Base):
+    __tablename__ = "condition"
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    password256 = Column(String(256), nullable=False)
+    diabetes                 = Column(Boolean)
+    hyper_tension            = Column(Boolean)
+    cardiovascular_disease   = Column(Boolean)
+    obesity                  = Column(Boolean)
+    asthma                   = Column(Boolean)
+    arthritis                = Column(Boolean)
+    osteoporosis             = Column(Boolean)
+    chronic_back_pain        = Column(Boolean)
+    damaged_left_upper_body  = Column(Boolean)
+    damaged_right_upper_body = Column(Boolean)
+    damaged_left_lower_body  = Column(Boolean)
+    damaged_right_lower_body = Column(Boolean)
+    damaged_body_core        = Column(Boolean)
+    recent_surgery           = Column(Boolean)
+    pregnancy                = Column(Boolean)
 
-    user = relationship('User', back_populates='password_obj', uselist=False)
+    user = relationship("User", back_populates="condition", uselist=False)
 
-class User(Base):
-    __tablename__ = 'user'
+class PersonalInfo(Base):
+    __tablename__ = "personal_info"
 
     id             = Column(Integer, primary_key=True, autoincrement=True)
-    first_name     = Column(String(45), nullable=False)
-    last_name      = Column(String(45), nullable=False)
-    cpf            = Column(String(45), unique=True, nullable=False)
-    birth_date     = Column(DateTime, nullable=False)
-    email          = Column(String(45), unique=True, nullable=False)
-    phone_number   = Column(String(15), nullable=False)
-    id_infos       = Column(Integer, ForeignKey('personal_info.id'), unique=True)
-    id_dates       = Column(Integer, ForeignKey('training_availability.id'), unique=True)
-    id_conditions  = Column(Integer, ForeignKey('condition.id'), unique=True)
-    id_password    = Column(Integer, ForeignKey('password.id'), unique=True, nullable=True)
+    weight_kg      = Column(Integer, nullable=False)
+    height_cm      = Column(Integer, nullable=False)
+    bio_gender     = Column(String(1), nullable=False)          # M / F / O
+    training_since = Column(DateTime, nullable=False)
 
-    password_obj = relationship('Password', back_populates='user')
+    user = relationship("User", back_populates="personal_info", uselist=False)
 
-# ---------------- Pydantic ----------------
-from pydantic import BaseModel, EmailStr, constr
-from datetime import datetime as dt
+class TrainingAvailability(Base):
+    __tablename__ = "training_availability"
 
-class UserCreate(BaseModel):
-    first_name   : constr(strip_whitespace=True, min_length=1, max_length=45)
-    last_name    : constr(strip_whitespace=True, min_length=1, max_length=45)
-    cpf          : constr(strip_whitespace=True, min_length=11, max_length=14)
-    birth_date   : dt
-    email        : EmailStr
-    phone_number : constr(strip_whitespace=True, min_length=8, max_length=15)
-    password     : constr(min_length=6)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    sunday    = Column(Boolean, nullable=False)
+    monday    = Column(Boolean, nullable=False)
+    tuesday   = Column(Boolean, nullable=False)
+    wednesday = Column(Boolean, nullable=False)
+    thursday  = Column(Boolean, nullable=False)
+    friday    = Column(Boolean, nullable=False)
+    saturday  = Column(Boolean, nullable=False)
 
-class UserRead(BaseModel):
-    id           : int
-    first_name   : str
-    last_name    : str
-    cpf          : str
-    birth_date   : dt
-    email        : EmailStr
-    phone_number : str
+    user = relationship("User", back_populates="training_availability", uselist=False)
 
-    model_config = {"from_attributes": True}
+# ---------- usuário ----------
+class User(Base):
+    __tablename__ = "user"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    first_name   = Column(String(45), nullable=False)
+    last_name    = Column(String(45), nullable=False)
+    cpf          = Column(String(45), unique=True, nullable=False)
+    birth_date   = Column(DateTime, nullable=False)
+    email        = Column(String(45), nullable=False)
+    phone_number = Column(String(15), nullable=False)
+
+    # FKs
+    id_infos      = Column(Integer, ForeignKey("personal_info.id"))
+    id_dates      = Column(Integer, ForeignKey("training_availability.id"))
+    id_conditions = Column(Integer, ForeignKey("condition.id"))
+    id_password   = Column(Integer, ForeignKey("password.id"))
+
+    personal_info         = relationship("PersonalInfo", back_populates="user", cascade="all, delete")
+    training_availability = relationship("TrainingAvailability", back_populates="user", cascade="all, delete")
+    condition             = relationship("Condition", back_populates="user", cascade="all, delete")
+    password_obj          = relationship("Password", back_populates="user", cascade="all, delete")
