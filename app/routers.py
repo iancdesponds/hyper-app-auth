@@ -1,4 +1,6 @@
 # routers/auth.py
+import os
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import secrets
 from typing import Annotated
@@ -15,7 +17,8 @@ from schemas import UserCreate, UserRead
 from crud import get_user_by_email, get_user_by_cpf, authenticate_user      # sua função de hashing
 
 # --------------------------------------------------------------------------- #
-SECRET_KEY = secrets.token_urlsafe(32)          # substitua por valor fixo no .env
+load_dotenv()
+SECRET_KEY = os.getenv("JWT_SECRET")          # substitua por valor fixo no .env
 ALGORITHM  = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # --------------------------------------------------------------------------- #
@@ -55,7 +58,7 @@ def login(
         )
 
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token  = jwt.encode({"sub": user.email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    token  = jwt.encode({"id": user.id,"sub": user.email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": token, "token_type": "bearer"}
 
 # --------------------------------------------------------------------------- #
