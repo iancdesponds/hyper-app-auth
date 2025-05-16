@@ -6,21 +6,21 @@ from pydantic import BaseModel, EmailStr
 
 # ---------- auxiliares ----------
 class ConditionIn(BaseModel):
-    diabetes: Optional[bool] = None
-    hyper_tension: Optional[bool] = None
-    cardiovascular_disease: Optional[bool] = None
-    obesity: Optional[bool] = None
-    asthma: Optional[bool] = None
-    arthritis: Optional[bool] = None
-    osteoporosis: Optional[bool] = None
-    chronic_back_pain: Optional[bool] = None
-    damaged_left_upper_body: Optional[bool] = None
-    damaged_right_upper_body: Optional[bool] = None
-    damaged_left_lower_body: Optional[bool] = None
-    damaged_right_lower_body: Optional[bool] = None
-    damaged_body_core: Optional[bool] = None
-    recent_surgery: Optional[bool] = None
-    pregnancy: Optional[bool] = None
+    diabetes: bool = False
+    hyper_tension: bool = False
+    cardiovascular_disease: bool = False
+    obesity: bool = False
+    asthma: bool = False
+    arthritis: bool = False
+    osteoporosis: bool = False
+    chronic_back_pain: bool = False
+    damaged_left_upper_body: bool = False
+    damaged_right_upper_body: bool = False
+    damaged_left_lower_body: bool = False
+    damaged_right_lower_body: bool = False
+    damaged_body_core: bool = False
+    recent_surgery: bool = False
+    pregnancy: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -47,6 +47,7 @@ class TrainingAvailabilityIn(BaseModel):
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
+    username: str
     cpf: str
     birth_date: datetime
     email: EmailStr
@@ -55,11 +56,13 @@ class UserCreate(BaseModel):
     personal_info: PersonalInfoIn
     training_availability: TrainingAvailabilityIn
     condition: ConditionIn
+    available_time: Optional[str] = None
 
 class UserRead(BaseModel):
     id: int
     first_name: str
     last_name: str
+    username: str
     cpf: str
     birth_date: datetime
     email: EmailStr

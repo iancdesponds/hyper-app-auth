@@ -32,6 +32,7 @@ def create_user_full(db: Session, data: UserCreate):
     user = User(
         first_name = data.first_name,
         last_name  = data.last_name,
+        username   = data.username,
         cpf        = data.cpf,
         birth_date = data.birth_date,
         email      = data.email,
