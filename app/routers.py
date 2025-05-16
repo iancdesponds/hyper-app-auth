@@ -1,9 +1,11 @@
 # routers/auth.py
+import json
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import secrets
 from typing import Annotated
+import requests
 from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -31,7 +33,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # --------------------------------------------------------------------------- #
 @router.post("/register", response_model=UserRead, status_code=201)
 def register_full(payload: UserCreate, db: Session = Depends(get_db)):
-    # duplicidade
+    # # Salva o payload em um arquivo JSON para debug
+    # with open("payload_debug.json", "w") as f:
+    #     f.write(json.dumps(payload.dict(), indent=4, default=str))
+
+    # Verifica se o CPF e o e-mail já estão cadastrados, evitando duplicidade
     if get_user_by_email(db, payload.email):
         raise HTTPException(400, detail="E-mail já cadastrado")
     if get_user_by_cpf(db, payload.cpf):
@@ -39,6 +45,13 @@ def register_full(payload: UserCreate, db: Session = Depends(get_db)):
 
     # chama crud centralizado
     user = create_user_full(db, payload)
+    
+    # Função que faz requisição pro microserviço de AI que cria o plano de treino
+    URL_API_AI = os.getenv("URL_API_AI")
+    if not URL_API_AI:
+        raise RuntimeError("Defina a env var URL_API_AI")
+    response = requests.post(URL_API_AI, json={"user_id": user.id, "available_time": payload.available_time})
+
     return user
 
 # --------------------------------------------------------------------------- #
