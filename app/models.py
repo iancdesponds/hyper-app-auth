@@ -69,7 +69,7 @@ class User(Base):
     id           = Column(Integer, primary_key=True, autoincrement=True)
     first_name   = Column(String(45), nullable=False)
     last_name    = Column(String(45), nullable=False)
-    username     = Column(String(45), unique=True, nullable=False)
+    username     = Column(String(60), unique=True, nullable=False)
     cpf          = Column(String(45), unique=True, nullable=False)
     birth_date   = Column(DateTime, nullable=False)
     email        = Column(String(45), nullable=False)

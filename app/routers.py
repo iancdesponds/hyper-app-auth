@@ -4,8 +4,9 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import secrets
-from typing import Annotated
+from typing import Annotated, List
 import requests
+from auxiliary import generate_random_payload, generate_random_email, generate_random_cpf
 from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -20,6 +21,7 @@ from crud import get_user_by_email, get_user_by_cpf, authenticate_user      # su
 
 # --------------------------------------------------------------------------- #
 load_dotenv()
+URL_API_AI = os.getenv("URL_API_AI")
 SECRET_KEY = os.getenv("JWT_SECRET")          # substitua por valor fixo no .env
 ALGORITHM  = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -47,7 +49,6 @@ def register_full(payload: UserCreate, db: Session = Depends(get_db)):
     user = create_user_full(db, payload)
     
     # Função que faz requisição pro microserviço de AI que cria o plano de treino
-    URL_API_AI = os.getenv("URL_API_AI")
     if not URL_API_AI:
         raise RuntimeError("Defina a env var URL_API_AI")
     response = requests.post(URL_API_AI, json={"user_id": user.id, "available_time": payload.available_time})
@@ -105,3 +106,47 @@ def get_current_user(
 @router.get("/me", response_model=UserRead)
 def read_current_user(current_user = Depends(get_current_user)):
     return current_user
+
+# --------------------------------------------------------------------------- #
+# REGISTRO DE DEBUG
+# --------------------------------------------------------------------------- #
+@router.get("/debug/register", response_model=UserRead, status_code=201)
+async def register_full_debug_single(db: Session = Depends(get_db)):
+    payload_dict = generate_random_payload()
+
+    while get_user_by_email(db, payload_dict["email"]):
+        payload_dict["email"] = generate_random_email()
+    while get_user_by_cpf(db, payload_dict["cpf"]):
+        payload_dict["cpf"] = generate_random_cpf()
+
+    payload = UserCreate(**payload_dict)
+
+    user = create_user_full(db, payload)
+
+    if not URL_API_AI:
+        raise RuntimeError("Defina a env var URL_API_AI")
+    requests.post(URL_API_AI, json={"user_id": user.id, "available_time": payload.available_time})
+
+    return user
+
+@router.get("/debug/register/{number_users}", response_model=List[UserRead], status_code=201)
+async def register_full_debug_batch(number_users: int, db: Session = Depends(get_db)):
+    created_users = []
+    if not URL_API_AI:
+        raise RuntimeError("Defina a env var URL_API_AI")
+
+    for _ in range(number_users):
+        payload_dict = generate_random_payload()
+
+        while get_user_by_email(db, payload_dict["email"]):
+            payload_dict["email"] = generate_random_email()
+        while get_user_by_cpf(db, payload_dict["cpf"]):
+            payload_dict["cpf"] = generate_random_cpf()
+
+        payload = UserCreate(**payload_dict)
+        user = create_user_full(db, payload)
+        created_users.append(user)
+
+        resp = requests.post(URL_API_AI, json={"user_id": user.id, "available_time": payload.available_time})
+        print(resp.json()) 
+    return created_users
