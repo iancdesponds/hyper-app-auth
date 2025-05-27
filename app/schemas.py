@@ -25,7 +25,7 @@ class ConditionIn(BaseModel):
     model_config = {"from_attributes": True}
 
 class PersonalInfoIn(BaseModel):
-    weight_kg: int
+    weight_kg: float
     height_cm: int
     bio_gender: Literal["M", "F", "O"]
     training_since: datetime

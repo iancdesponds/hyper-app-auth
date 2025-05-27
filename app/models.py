@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, String
+    Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -41,7 +41,7 @@ class PersonalInfo(Base):
     __tablename__ = "personal_info"
 
     id             = Column(Integer, primary_key=True, autoincrement=True)
-    weight_kg      = Column(Integer, nullable=False)
+    weight_kg      = Column(Float, nullable=False)
     height_cm      = Column(Integer, nullable=False)
     bio_gender     = Column(String(1), nullable=False)          # M / F / O
     training_since = Column(DateTime, nullable=False)
